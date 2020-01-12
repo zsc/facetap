@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/opt/ros/kinetic/lib/python2.7/dist-packages')
+
 import random
 import os
 import cv2
