@@ -26,16 +26,7 @@ continuous_frames = 0
 gpio.setmode(gpio.BOARD)
 gpio.setup(7, gpio.OUT)
 
-'''
-def turn_on():
-    gpio.setup(7, gpio.OUT)
-
-def turn_off():
-    #gpio.setup(17, gpio.OUT)
-    gpio.cleanup(7)
-'''
-
-@app.route('/')
+app.route('/')
 @app.route('/index')
 def index():
     return render_template('index.html')
@@ -91,13 +82,6 @@ def get_frame():
             continuous_frames += 1
         else:
             continuous_frames = 0
-
-        #global threshold_on
-        #global threshold_off
-        if continuous_frames > 6:
-            turn_on()
-        elif continuous_frames < 3:
-            turn_off()
 
         # Draw a rectangle around the faces
         for (x, y, w, h) in faces:
