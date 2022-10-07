@@ -17,3 +17,12 @@ import Jetson.GPIO as GPIO
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(9, GPIO.OUT)
 ```
+
+## Xavier NX
+```
+import Jetson.GPIO as GPIO
+GPIO.setmode(GPIO.BOARD) # now simply follow the pin number on PCB
+GPIO.setup(7, GPIO.OUT)
+GPIO.output(7, False)
+GPIO.output(7, True)
+```
