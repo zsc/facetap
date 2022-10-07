@@ -19,6 +19,10 @@ GPIO.setup(9, GPIO.OUT)
 ```
 
 ## Xavier NX
+* pin1: 3.3V
+* pin6: GND
+* pin7: control output
+
 ```
 import Jetson.GPIO as GPIO
 GPIO.setmode(GPIO.BOARD) # now simply follow the pin number on PCB
