@@ -20,15 +20,20 @@ print(ort.get_device())
 ort_session = ort.InferenceSession("/home/dev/hand_landmark.onnx")
 cap = None
 continuous_frames = 0
-threshold_on = 6
-threshold_off = 3
+#threshold_on = 6
+#threshold_off = 3
 
+gpio.setmode(gpio.BOARD)
+gpio.setup(7, gpio.OUT)
+
+'''
 def turn_on():
     gpio.setup(7, gpio.OUT)
 
 def turn_off():
     #gpio.setup(17, gpio.OUT)
     gpio.cleanup(7)
+'''
 
 @app.route('/')
 @app.route('/index')
@@ -57,11 +62,12 @@ def get_frame():
         if not os.path.exists(dev):
             dev = 0
         cap = cv2.VideoCapture(dev)
-        gpio.setmode(gpio.BOARD)
 
     try:
         ret, img = cap.read()
         if img is not None:
+            #print(img.shape)
+            #print(img.transpose(2, 0, 1).shape)
             scale = 224 
             #y0 = (img.shape[0] - scale)//2
             #x0 = (img.shape[1] - scale)//2
@@ -117,15 +123,17 @@ def off():
     return render_template('index.html')
 
 @app.route('/threshold_on')
-def threshold_on(val):
-    global threshold_on
-    threshold_on = val
+def threshold_on():
+    #global threshold_on
+    #threshold_on = val
+    gpio.output(7, True)
     return render_template('index.html')
 
 @app.route('/threshold_off')
-def threshold_off(val):
-    global threshold_off
-    threshold_off = val
+def threshold_off():
+    #global threshold_off
+    #threshold_off = val
+    gpio.output(7, False)
     return render_template('index.html')
 
 @app.route('/reboot')
