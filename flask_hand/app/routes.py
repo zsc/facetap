@@ -6,6 +6,7 @@ import os
 import cv2
 import glob
 import numpy as np
+import onnxruntime as ort
 import Jetson.GPIO as gpio
 try:
    import cPickle as pickle
@@ -15,6 +16,8 @@ except:
 from flask import make_response, render_template, Response
 from app import app
 
+print(ort.get_device())
+ort_session = ort.InferenceSession("/home/dev/hand_landmark.onnx")
 cap = None
 continuous_frames = 0
 threshold_on = 6
@@ -58,11 +61,21 @@ def get_frame():
 
     try:
         ret, img = cap.read()
-        scale = 224 
-        y0 = (img.shape[0] - scale)//2
-        x0 = (img.shape[1] - scale)//2
-        img = img[y0:y0+scale, x0:x0+scale]
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        if img is not None:
+            scale = 224 
+            #y0 = (img.shape[0] - scale)//2
+            #x0 = (img.shape[1] - scale)//2
+            #img = img[y0:y0+scale, x0:x0+scale]
+            img = cv2.resize(img, (224, 224))
+            outputs = ort_session.run(
+                None,
+                {"input_1": img.copy().transpose(2, 0, 1).reshape(1, 3, 224, 224).astype(np.float32)},
+            )
+            #print(outputs[0])
+            print([int(x*100) / 100.0 for x in outputs[1:]])
+        else:
+            print(ret, img)
+        #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         #img = cv2.resize(img, (0, 0), fx=0.4, fy=0.4)
 
 
