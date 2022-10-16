@@ -22,11 +22,13 @@ cap = None
 continuous_frames = 0
 #threshold_on = 6
 #threshold_off = 3
+do_capture = False
+g_frame_cnt = 0
 
 gpio.setmode(gpio.BOARD)
 gpio.setup(7, gpio.OUT)
 
-app.route('/')
+@app.route('/')
 @app.route('/index')
 def index():
     return render_template('index.html')
@@ -59,17 +61,22 @@ def get_frame():
         if img is not None:
             #print(img.shape)
             #print(img.transpose(2, 0, 1).shape)
+            img = cv2.resize(img, (320, 240))
             scale = 224 
-            #y0 = (img.shape[0] - scale)//2
-            #x0 = (img.shape[1] - scale)//2
-            #img = img[y0:y0+scale, x0:x0+scale]
-            img = cv2.resize(img, (224, 224))
+            y0 = (img.shape[0] - scale)//2
+            x0 = (img.shape[1] - scale)//2
+            img = img[y0:y0+scale, x0:x0+scale]
             outputs = ort_session.run(
                 None,
-                {"input_1": img.copy().transpose(2, 0, 1).reshape(1, 3, 224, 224).astype(np.float32)},
+                {"input_1": cv2.resize(img.copy(), (224, 224)).transpose(2, 0, 1).reshape(1, 3, 224, 224).astype(np.float32)},
             )
             #print(outputs[0])
             print([int(x*100) / 100.0 for x in outputs[1:]])
+
+            global g_frame_cnt
+            g_frame_cnt += 1
+            if g_frame_cnt % 10 == 0 and do_capture:
+                cv2.imwrite("/home/dev/captures/{:05d}.jpg".format(g_frame_cnt), img)
         else:
             print(ret, img)
         #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -91,7 +98,7 @@ def get_frame():
     except Exception as e:
         print(e)
         img = np.zeros((40, 40, 3)).astype('uint8')
-    return cv2.resize(img, (224, 224))
+    return img #cv2.resize(img, (224, 224))
 
 def proc_cmd(cmd):
     print(cmd)
