@@ -10,6 +10,12 @@ import torchvision.transforms as T
 
 from PIL import Image
 
+try:
+    from torchvision.transforms import InterpolationMode
+
+    BICUBIC = InterpolationMode.BICUBIC
+except ImportError:
+    BICUBIC = Image.BICUBIC
 
 """
 Baseed on background info here:
@@ -27,14 +33,22 @@ def crop_center(img):
     return img[h // 2 - s: h//2 + s, w // 2 - s : w//2 + s]
 """
 
+
+def _convert_image_to_rgb(image):
+    return image.convert("RGB")
+
+
 # m, pre = clip.load("ViT-B/32")
 # m, pre = clip.load("RN50")
 pre = T.Compose(
     [
-        T.Resize(256),
+        T.Resize(256, interpolation=BICUBIC),
         T.CenterCrop(224),
+        _convert_image_to_rgb,
         T.ToTensor(),
-        T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        T.Normalize(
+            (0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711)
+        ),
     ]
 )
 # labels = ["wash hands with fingers visible", "unoccluded plastic plate"]
