@@ -5,6 +5,7 @@ import sys
 import random
 import os
 import cv2
+import PIL
 import glob
 import numpy as np
 import onnxruntime as ort
@@ -19,13 +20,19 @@ from flask import make_response, render_template, Response
 from app import app
 
 print(ort.get_device())
-ort_session = ort.InferenceSession("/home/dev/hand_landmark.onnx")
+ort_session = ort.InferenceSession("/home/dev/1030_model/model.onnx")
+classes = [
+    "good",
+    "bad",
+    "no_hand",
+]
 cap = None
 continuous_frames = 0
 # threshold_on = 6
 # threshold_off = 3
 do_capture = False
 g_frame_cnt = 0
+g_pred_word = "UNK"
 
 gpio.setmode(gpio.BOARD)
 gpio.setup(7, gpio.OUT)
@@ -34,7 +41,7 @@ gpio.setup(7, gpio.OUT)
 @app.route("/")
 @app.route("/index")
 def index():
-    return render_template("index.html")
+    return render_template("index.html", title="{}".format(g_pred_word))
 
 
 def gen():
@@ -73,17 +80,24 @@ def get_frame():
             y0 = (img.shape[0] - scale) // 2
             x0 = (img.shape[1] - scale) // 2
             img = img[y0 : y0 + scale, x0 : x0 + scale]
-            outputs = ort_session.run(
-                None,
-                {
-                    "input_1": cv2.resize(img.copy(), (224, 224))
-                    .transpose(2, 0, 1)
-                    .reshape(1, 3, 224, 224)
-                    .astype(np.float32)
-                },
+            inp_numpy = cv2.resize(img, (300, 300))[:, :, ::-1][None].astype("float32")
+            class_scores = ort_session.run(None, {"input": inp_numpy})[0][0]
+
+            global g_pred_word
+            g_pred_word = "{} {}".format(
+                classes[class_scores.argmax()], class_scores.max()
             )
-            # print(outputs[0])
-            print([int(x * 100) / 100.0 for x in outputs[1:]])
+            cv2.putText(
+                img,
+                g_pred_word,
+                (30, 30),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 255, 0),
+                2,
+                cv2.LINE_AA,
+            )
+            # print(g_pred_word)
 
             global g_frame_cnt
             g_frame_cnt += 1
@@ -119,13 +133,13 @@ def proc_cmd(cmd):
 @app.route("/on")
 def on():
     proc_cmd("on")
-    return render_template("index.html")
+    return render_template("index.html", title="{}".format(g_pred_word))
 
 
 @app.route("/off")
 def off():
     proc_cmd("off")
-    return render_template("index.html")
+    return render_template("index.html", title="{}".format(g_pred_word))
 
 
 @app.route("/threshold_on")
@@ -133,7 +147,7 @@ def threshold_on():
     # global threshold_on
     # threshold_on = val
     gpio.output(7, True)
-    return render_template("index.html")
+    return render_template("index.html", title="{}".format(g_pred_word))
 
 
 @app.route("/threshold_off")
@@ -141,7 +155,7 @@ def threshold_off():
     # global threshold_off
     # threshold_off = val
     gpio.output(7, False)
-    return render_template("index.html")
+    return render_template("index.html", title="{}".format(g_pred_word))
 
 
 @app.route("/reboot")
