@@ -33,6 +33,8 @@ continuous_frames = 0
 do_capture = False
 g_frame_cnt = 0
 g_pred_word = "UNK"
+g_pred_cls = ""
+g_image = None
 
 gpio.setmode(gpio.BOARD)
 gpio.setup(7, gpio.OUT)
@@ -47,8 +49,6 @@ def index():
 def gen():
     while True:
         frame = get_frame()
-        global g_image
-        g_image = frame
         _, img_encoded = cv2.imencode(".jpg", frame)
         yield (
             b"--frame\r\n"
@@ -59,6 +59,22 @@ def gen():
 @app.route("/video_feed")
 def video_feed():
     return Response(gen(), mimetype="multipart/x-mixed-replace; boundary=frame")
+
+
+def refresh_pred():
+    img = g_image
+    if img is None:
+        return
+    inp_numpy = cv2.resize(img, (300, 300))[:, :, ::-1][None].astype("float32")
+    class_scores = ort_session.run(None, {"input": inp_numpy})[0][0]
+
+    global g_pred_word
+    g_pred_word = "{} {}".format(classes[class_scores.argmax()], class_scores.max())
+    global g_pred_cls
+    if class_scores.argmax() < 0.7:
+        g_pred_cls = "unk"
+    else:
+        g_pred_cls = classes[class_scores.argmax()]
 
 
 def get_frame():
@@ -80,13 +96,10 @@ def get_frame():
             y0 = (img.shape[0] - scale) // 2
             x0 = (img.shape[1] - scale) // 2
             img = img[y0 : y0 + scale, x0 : x0 + scale]
-            inp_numpy = cv2.resize(img, (300, 300))[:, :, ::-1][None].astype("float32")
-            class_scores = ort_session.run(None, {"input": inp_numpy})[0][0]
+            global g_image
+            g_image = img[:]
 
-            global g_pred_word
-            g_pred_word = "{} {}".format(
-                classes[class_scores.argmax()], class_scores.max()
-            )
+            refresh_pred()
             cv2.putText(
                 img,
                 g_pred_word,
@@ -130,6 +143,12 @@ def proc_cmd(cmd):
     print(cmd)
 
 
+@app.route("/status")
+def status():
+    refresh_pred()
+    return g_pred_cls
+
+
 @app.route("/on")
 def on():
     proc_cmd("on")
@@ -146,6 +165,7 @@ def off():
 def threshold_on():
     # global threshold_on
     # threshold_on = val
+    refresh_pred()
     gpio.output(7, True)
     return render_template("index.html", title="{}".format(g_pred_word))
 
@@ -154,6 +174,7 @@ def threshold_on():
 def threshold_off():
     # global threshold_off
     # threshold_off = val
+    refresh_pred()
     gpio.output(7, False)
     return render_template("index.html", title="{}".format(g_pred_word))
 
