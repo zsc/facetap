@@ -43,7 +43,7 @@ gpio.setup(7, gpio.OUT)
 @app.route("/")
 @app.route("/index")
 def index():
-    return render_template("index.html", title="{}".format(g_pred_word))
+    return render_template("index.html", title="{}".format(g_pred_cls))
 
 
 def gen():
