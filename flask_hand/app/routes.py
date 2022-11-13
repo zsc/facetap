@@ -20,7 +20,7 @@ from flask import make_response, render_template, Response
 from app import app
 
 print(ort.get_device())
-ort_session = ort.InferenceSession("/home/dev/1030_model/model.onnx")
+ort_session = ort.InferenceSession("/home/dev/1113_model/model.onnx")
 classes = [
     "good",
     "bad",
@@ -62,7 +62,7 @@ def video_feed():
 
 
 def refresh_pred():
-    img = g_image
+    img = g_image[:]
     if img is None:
         return
     inp_numpy = cv2.resize(img, (300, 300))[:, :, ::-1][None].astype("float32")
@@ -71,7 +71,7 @@ def refresh_pred():
     global g_pred_word
     g_pred_word = "{} {}".format(classes[class_scores.argmax()], class_scores.max())
     global g_pred_cls
-    if class_scores.argmax() < 0.7:
+    if class_scores.max() < 0.7:
         g_pred_cls = "unk"
     else:
         g_pred_cls = classes[class_scores.argmax()]
@@ -99,6 +99,11 @@ def get_frame():
             global g_image
             g_image = img[:]
 
+            global g_frame_cnt
+            g_frame_cnt += 1
+            if g_frame_cnt % 10 == 0 and do_capture:
+                cv2.imwrite("/home/dev/captures/{:05d}.jpg".format(g_frame_cnt), g_image)
+
             refresh_pred()
             cv2.putText(
                 img,
@@ -112,10 +117,6 @@ def get_frame():
             )
             # print(g_pred_word)
 
-            global g_frame_cnt
-            g_frame_cnt += 1
-            if g_frame_cnt % 10 == 0 and do_capture:
-                cv2.imwrite("/home/dev/captures/{:05d}.jpg".format(g_frame_cnt), img)
         else:
             print(ret, img)
         # gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
