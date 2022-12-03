@@ -153,13 +153,13 @@ def status():
 @app.route("/on")
 def on():
     proc_cmd("on")
-    return render_template("index.html", title="{}".format(g_pred_word))
+    return render_template("index.html", title="{}".format(g_pred_cls))
 
 
 @app.route("/off")
 def off():
     proc_cmd("off")
-    return render_template("index.html", title="{}".format(g_pred_word))
+    return render_template("index.html", title="{}".format(g_pred_cls))
 
 
 @app.route("/threshold_on")
@@ -168,7 +168,7 @@ def threshold_on():
     # threshold_on = val
     refresh_pred()
     gpio.output(7, True)
-    return render_template("index.html", title="{}".format(g_pred_word))
+    return render_template("index.html", title="{}".format(g_pred_cls))
 
 
 @app.route("/threshold_off")
@@ -177,7 +177,7 @@ def threshold_off():
     # threshold_off = val
     refresh_pred()
     gpio.output(7, False)
-    return render_template("index.html", title="{}".format(g_pred_word))
+    return render_template("index.html", title="{}".format(g_pred_cls))
 
 
 @app.route("/reboot")
